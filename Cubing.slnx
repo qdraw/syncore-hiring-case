@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Cubing.Api/Cubing.Api.csproj" />
+    <Project Path="src/Cubing.Core/Cubing.Core.csproj" />
+    <Project Path="src/Cubing.Infrastructure/Cubing.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Cubing.Api.Tests/Cubing.Api.Tests.csproj" />
+    <Project Path="tests/Cubing.Core.Tests/Cubing.Core.Tests.csproj" />
+  </Folder>
+</Solution>
