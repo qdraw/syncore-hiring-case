@@ -60,7 +60,7 @@ public class CubingCalculationServiceTests
 
         await Assert.ThrowsAsync<CubingValidationException>(() => _sut.CalculateAndStoreAsync(Request("Acme")));
 
-        await _repository.DidNotReceiveWithAnyArgs().AddAsync(default!, default);
+        await _repository.DidNotReceiveWithAnyArgs().AddAsync(null!);
     }
 
     [Fact]
