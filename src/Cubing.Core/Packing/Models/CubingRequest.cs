@@ -14,4 +14,7 @@ public sealed class CubingRequest(
     public Dimensions ArticleDimensions { get; } = articleDimensions;
     public string BoxTypeName { get; } = boxTypeName;
     public Dimensions BoxDimensions { get; } = boxDimensions;
+
+    public CubingRequest WithCustomerId(string customerId) =>
+        new(customerId, Quantity, ArticleName, ArticleDimensions, BoxTypeName, BoxDimensions);
 }

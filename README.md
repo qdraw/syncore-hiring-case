@@ -73,7 +73,7 @@ Response:
 ```
 
 `customerId` selects the customer's packing rules and LPN format. It is optional and defaults to
-`Cubing:DefaultCustomerId` (`SuperNiceCubes`), so the example payload from the brief works unchanged. Ids are
+`Cubing:DefaultCustomerId` (`SuperNiceCubes`; a blank value fails at startup), so the example payload from the brief works unchanged. Ids are
 case-insensitive.
 
 Invalid requests return **400** with a standard validation problem (`errors` keyed by field). Nothing is
@@ -101,10 +101,11 @@ src/
   Cubing.Core/                     # business logic, no ASP.NET or EF Core dependencies
     Entities/                      #   persisted entities (CubingCalculation, CalculatedBox)
     Packing/
-      Interfaces/                  #   IPackingStrategy, ILpnGenerator, ICubingService
+      Interfaces/                  #   IPackingStrategy, ILpnGenerator, ICubingService, ICubingCalculationService
       Models/                      #   Dimensions, CubingRequest, CubingResult, PackedBox
       Strategies/                  #   CubePackingStrategy, GuidLpnGenerator
-      Services/                    #   CubingService
+      Services/                    #   CubingService, CubingCalculationService, CustomerProfileRegistry
+      CubingOptions.cs             #   typed settings (default customer)
       Exceptions/                  #   CubingValidationException
     Repositories/                  #   ICubingCalculationRepository
   Cubing.Infrastructure/           # EF Core + SQLite
@@ -114,6 +115,7 @@ src/
   Cubing.Api/                      # web host
     Controllers/                   #   CubingController, HomeController
     Contracts/                     #   request/response models
+    Mapping/                       #   CubingApiMapper (contracts <-> domain)
     Extensions/                    #   AddCubing()
     Program.cs
 tests/
@@ -149,8 +151,18 @@ names, positive dimensions). Whether an article is acceptable at all is `IPackin
 the "article must be cubic" rule belongs to `CubePackingStrategy`, not the shared service.
 
 **`CubingService` orchestrates.** It validates, asks the strategy for the capacity, computes the box count,
-generates one LPN per box and distributes the articles. Dependencies arrive through the constructor, so the
+generates one LPN per box and distributes the articles. Validation and calculation are separate steps: the
+customer-independent checks are declarative `ValidationRule`s in `Packing/Validation/CubingRules.cs` (add a
+rule by adding a line), and the box count is a pure property of `PackingCapacity`. Dependencies arrive through the constructor, so the
 service is tested with mocked strategies and generators.
+
+**Use-case service.** `CubingCalculationService` is the "cube and store" use case: it applies the default
+customer, calls `ICubingService`, builds the entity (`CubingCalculation.From`) and saves it through the
+repository. The controller only translates HTTP (via `CubingApiMapper`) and maps validation errors to 400.
+
+**Typed options.** `CubingOptions` is bound from the `Cubing` section with `IOptions` and validated at startup,
+so a blank default customer fails fast instead of surfacing as "Unknown customer ''". Core stays free of the
+options package and receives the plain `CubingOptions` object.
 
 **Validation is business logic, not HTTP.** The service throws `CubingValidationException` with errors keyed
 by field. The controller converts it to a 400 validation problem. All input is validated before any LPN is
@@ -163,7 +175,7 @@ also has a unique index on the LPN column.
 **Overflow safety.** Per-axis counts are `long`, and their product saturates at `long.MaxValue` instead of
 wrapping (a `b <= long.MaxValue / a` check, no exceptions). The box count uses ceiling division on `long` values, so no intermediate result overflows.
 
-**Box limit.** A request needing more than 10,000 boxes (`MaxBoxes` in `CubingService`) is rejected with a
+**Box limit.** A request needing more than 10,000 boxes (`CubingRules.MaxBoxes`) is rejected with a
 validation error. Without it, a request like 2 billion articles with a capacity of 1 would try to allocate
 2 billion boxes.
 
