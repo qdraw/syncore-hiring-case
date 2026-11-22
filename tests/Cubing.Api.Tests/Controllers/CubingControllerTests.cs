@@ -1,4 +1,3 @@
-using Cubing.Api.Tests;
 using System.Net;
 using System.Net.Http.Json;
 using Cubing.Api.Contracts;
@@ -104,7 +103,7 @@ public class CubingControllerTests(CubingApiFactory factory) : IClassFixture<Cub
         await _client.PostAsJsonAsync("/api/cubing", Valid(quantity: 0));
 
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Cubing.Infrastructure.Data.CubingDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<Infrastructure.Data.CubingDbContext>();
         Assert.False(await db.CubingCalculations.AnyAsync(c => c.TotalQuantity == 0));
     }
 

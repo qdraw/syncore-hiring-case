@@ -1,0 +1,43 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Cubing flow" id="cubing-flow">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="client" value="Client" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="30" height="60" as="geometry"/></mxCell>
+        <mxCell id="ctrl" value="&lt;b&gt;POST /api/Cubing&lt;/b&gt;&lt;br&gt;CubingController.Create&lt;br&gt;(CubingApiRequest → domain via CubingApiMapper)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="140" y="60" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="calc" value="&lt;b&gt;CubingCalculationService&lt;/b&gt;&lt;br&gt;CalculateAndStoreAsync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="430" y="60" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="cust" value="CustomerId empty?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="450" y="170" width="180" height="80" as="geometry"/></mxCell>
+        <mxCell id="def" value="Use options.DefaultCustomerId" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="700" y="185" width="200" height="50" as="geometry"/></mxCell>
+        <mxCell id="cube" value="&lt;b&gt;CubingService.Cube&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="450" y="290" width="180" height="50" as="geometry"/></mxCell>
+        <mxCell id="v1" value="&lt;b&gt;Stage 1: ValidateRequest&lt;/b&gt;&lt;br&gt;Input rules: quantity &gt; 0, names set, dimensions &gt; 0&lt;br&gt;Resolve CustomerProfile (registry)&lt;br&gt;Unknown customer → error" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="410" y="380" width="260" height="90" as="geometry"/></mxCell>
+        <mxCell id="v2" value="&lt;b&gt;Stage 2: ValidateCapacity&lt;/b&gt;&lt;br&gt;Strategy.ValidateArticle (cubic)&lt;br&gt;Strategy.GetMaxArticlesPerBox&lt;br&gt;Fits in box? Boxes needed ≤ 10,000?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="410" y="510" width="260" height="90" as="geometry"/></mxCell>
+        <mxCell id="loop" value="&lt;b&gt;Pack boxes&lt;/b&gt;&lt;br&gt;boxes = ceil(quantity / articlesPerBox)&lt;br&gt;per box: items = min(remaining, perBox)&lt;br&gt;generate unique LPN (max 10 attempts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="410" y="640" width="260" height="90" as="geometry"/></mxCell>
+        <mxCell id="store" value="CubingCalculation.From(result)&lt;br&gt;repository.AddAsync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="430" y="770" width="220" height="60" as="geometry"/></mxCell>
+        <mxCell id="db" value="Database&lt;br&gt;(CubingDbContext)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="730" y="760" width="100" height="80" as="geometry"/></mxCell>
+        <mxCell id="ok" value="&lt;b&gt;201 Created&lt;/b&gt;&lt;br&gt;Location: GET /api/Cubing/{id}&lt;br&gt;Body: calculationId, customerId, articleName, boxTypeName, totalQuantity, totalBoxes, boxes[ licensePlateNumber, numberOfItems ]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;" vertex="1" parent="1"><mxGeometry x="100" y="750" width="270" height="100" as="geometry"/></mxCell>
+        <mxCell id="err" value="&lt;b&gt;CubingValidationException&lt;/b&gt;&lt;br&gt;caught in controller" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="950" y="440" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="bad" value="&lt;b&gt;400 Bad Request&lt;/b&gt;&lt;br&gt;ValidationProblemDetails" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="950" y="120" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="get" value="&lt;b&gt;GET /api/Cubing/{id}&lt;/b&gt;&lt;br&gt;repository.GetByIdAsync → 200 OK or 404 Not Found" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1"><mxGeometry x="950" y="760" width="260" height="70" as="geometry"/></mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="client" target="ctrl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e1l" value="CubingApiRequest JSON" style="edgeLabel;html=1;" vertex="1" connectable="0" parent="e1"><mxGeometry relative="1" as="geometry"><mxPoint y="-12" as="offset"/></mxGeometry></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="ctrl" target="calc"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="calc" target="cust"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="cust" target="def"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="cust" target="cube"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="def" target="cube"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="800" y="315"/></Array></mxGeometry></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="cube" target="v1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="valid" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="v1" target="v2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="valid" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="v2" target="loop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" value="CubingResult" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="loop" target="store"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="store" target="db"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" value="CubingCalculation" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="store" target="ok"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e13" value="invalid" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="v1" target="err"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1050" y="425"/></Array></mxGeometry></mxCell>
+        <mxCell id="e14" value="invalid" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="v2" target="err"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1050" y="555"/></Array></mxGeometry></mxCell>
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="err" target="bad"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#666666;dashed=1;" edge="1" parent="1" source="get" target="db"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

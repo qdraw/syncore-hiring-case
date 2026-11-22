@@ -9,7 +9,7 @@ namespace Cubing.Core.Packing.Validation;
 internal static class CubingRules
 {
     /// <summary>Guards against requests that would allocate an unreasonable number of boxes.</summary>
-    public const int MaxBoxes = 10_000;
+    private const int MaxBoxes = 10_000;
 
     /// <summary>Rules on the request itself, evaluated before anything is looked up or calculated.</summary>
     public static readonly IReadOnlyList<ValidationRule<CubingRequest>> Input =
