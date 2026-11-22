@@ -6,14 +6,20 @@ namespace Cubing.Api.Extensions;
 
 public static class CubingServiceCollectionExtensions
 {
+    public const string SuperNiceCubes = "SuperNiceCubes";
+
     /// <summary>
-    /// Registers the Super Nice Cubes strategies. A future customer-specific setup would replace the
-    /// strategy registrations here, or introduce a resolver in front of <see cref="ICubingService"/>.
+    /// Registers the customer profiles. Super Nice Cubes is built in; <paramref name="configure"/> adds more
+    /// customers, each with its own packing strategy and LPN generator.
     /// </summary>
-    public static IServiceCollection AddCubing(this IServiceCollection services)
+    public static IServiceCollection AddCubing(
+        this IServiceCollection services, Action<CustomerProfileRegistry>? configure = null)
     {
-        services.AddSingleton<IPackingStrategy, CubePackingStrategy>();
-        services.AddSingleton<ILpnGenerator, GuidLpnGenerator>();
+        var registry = new CustomerProfileRegistry()
+            .Add(SuperNiceCubes, new CubePackingStrategy(), new GuidLpnGenerator());
+        configure?.Invoke(registry);
+
+        services.AddSingleton<ICustomerProfileResolver>(registry);
         services.AddScoped<ICubingService, CubingService>();
         return services;
     }

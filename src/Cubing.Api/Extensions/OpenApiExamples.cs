@@ -14,6 +14,7 @@ public static class OpenApiExamples
             {
                 schema.Examples = [new JsonObject
                 {
+                    ["customerId"] = "SuperNiceCubes",
                     ["quantity"] = 28,
                     ["articleName"] = "Article1",
                     ["articleDimensions"] = new JsonObject { ["length"] = 10, ["width"] = 10, ["height"] = 10 },

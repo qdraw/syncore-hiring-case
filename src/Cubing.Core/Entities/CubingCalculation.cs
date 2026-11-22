@@ -4,6 +4,7 @@ namespace Cubing.Core.Entities;
 public class CubingCalculation
 {
     public Guid Id { get; set; }
+    public string CustomerId { get; set; } = string.Empty;
     public string ArticleName { get; set; } = string.Empty;
     public string BoxTypeName { get; set; } = string.Empty;
     public int TotalQuantity { get; set; }

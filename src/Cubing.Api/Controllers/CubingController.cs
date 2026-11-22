@@ -10,7 +10,10 @@ namespace Cubing.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CubingController(ICubingService cubingService, ICubingCalculationRepository repository) : ControllerBase
+public class CubingController(
+    ICubingService cubingService,
+    ICubingCalculationRepository repository,
+    IConfiguration configuration) : ControllerBase
 {
     /// <summary>Calculates (and stores) the boxes needed to pack a quantity of cubic articles.</summary>
     [HttpPost]
@@ -21,7 +24,7 @@ public class CubingController(ICubingService cubingService, ICubingCalculationRe
         CubingResult result;
         try
         {
-            result = cubingService.Cube(ToDomain(request));
+            result = cubingService.Cube(ToDomain(request, DefaultCustomerId));
         }
         catch (CubingValidationException ex)
         {
@@ -34,6 +37,7 @@ public class CubingController(ICubingService cubingService, ICubingCalculationRe
         var calculation = new CubingCalculation
         {
             Id = Guid.NewGuid(),
+            CustomerId = result.CustomerId,
             ArticleName = result.ArticleName,
             BoxTypeName = result.BoxTypeName,
             TotalQuantity = result.TotalQuantity,
@@ -59,6 +63,7 @@ public class CubingController(ICubingService cubingService, ICubingCalculationRe
     private static CubingApiResponse ToResponse(CubingCalculation c) => new()
     {
         CalculationId = c.Id,
+        CustomerId = c.CustomerId,
         ArticleName = c.ArticleName,
         BoxTypeName = c.BoxTypeName,
         TotalQuantity = c.TotalQuantity,
@@ -69,7 +74,10 @@ public class CubingController(ICubingService cubingService, ICubingCalculationRe
             .ToList(),
     };
 
-    private static CubingRequest ToDomain(CubingApiRequest r) => new(
+    private string DefaultCustomerId => configuration["Cubing:DefaultCustomerId"] ?? string.Empty;
+
+    private static CubingRequest ToDomain(CubingApiRequest r, string defaultCustomerId) => new(
+        string.IsNullOrWhiteSpace(r.CustomerId) ? defaultCustomerId : r.CustomerId.Trim(),
         r.Quantity,
         r.ArticleName ?? string.Empty,
         ToDomain(r.ArticleDimensions),

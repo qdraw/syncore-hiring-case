@@ -47,4 +47,42 @@ public class CubePackingStrategyTests
 
         Assert.Equal(long.MaxValue, capacity);
     }
+
+    [Fact]
+    public void Capacity_is_the_exact_product_when_it_does_not_overflow()
+    {
+        // 1000 x 1000 x 1000 is a plain product.
+        var capacity = _strategy.GetMaxArticlesPerBox(new Dimensions(1, 1, 1), new Dimensions(1000, 1000, 1000));
+
+        Assert.Equal(1_000_000_000L, capacity);
+    }
+
+    [Fact]
+    public void Capacity_with_a_zero_axis_is_zero_even_when_other_axes_are_huge()
+    {
+        var capacity = _strategy.GetMaxArticlesPerBox(
+            new Dimensions(10, 10, 10), new Dimensions(int.MaxValue, int.MaxValue, 9));
+
+        Assert.Equal(0, capacity);
+    }
+
+    [Fact]
+    public void Capacity_is_zero_for_non_cubic_articles()
+    {
+        Assert.Equal(0, _strategy.GetMaxArticlesPerBox(new Dimensions(10, 10, 11), new Dimensions(100, 100, 100)));
+    }
+
+    [Fact]
+    public void Cubic_articles_are_valid()
+    {
+        Assert.Null(_strategy.ValidateArticle(new Dimensions(10, 10, 10)));
+    }
+
+    [Theory]
+    [InlineData(10, 10, 11)]
+    [InlineData(1, 2, 1)]
+    public void Non_cubic_articles_are_rejected(int l, int w, int h)
+    {
+        Assert.Contains("cubic", _strategy.ValidateArticle(new Dimensions(l, w, h)));
+    }
 }

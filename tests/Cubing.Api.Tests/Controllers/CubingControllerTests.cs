@@ -44,6 +44,40 @@ public class CubingControllerTests(CubingApiFactory factory) : IClassFixture<Cub
     }
 
     [Fact]
+    public async Task Missing_customer_id_falls_back_to_the_default_customer()
+    {
+        var body = await (await _client.PostAsJsonAsync("/api/cubing", Valid()))
+            .Content.ReadFromJsonAsync<CubingApiResponse>();
+
+        Assert.Equal("SuperNiceCubes", body!.CustomerId);
+    }
+
+    [Fact]
+    public async Task Customer_id_selects_the_customers_lpn_format()
+    {
+        var response = await _client.PostAsJsonAsync("/api/cubing",
+            Valid(r => r.CustomerId = CubingApiFactory.PrefixedCustomer));
+        var body = await response.Content.ReadFromJsonAsync<CubingApiResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(CubingApiFactory.PrefixedCustomer, body!.CustomerId);
+        Assert.All(body.Boxes, b => Assert.StartsWith("PFX-", b.LicensePlateNumber));
+
+        var fetched = await _client.GetFromJsonAsync<CubingApiResponse>($"/api/cubing/{body.CalculationId}");
+        Assert.Equal(CubingApiFactory.PrefixedCustomer, fetched!.CustomerId);
+    }
+
+    [Fact]
+    public async Task Unknown_customer_id_returns_400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/cubing", Valid(r => r.CustomerId = "Nobody"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Http.HttpValidationProblemDetails>();
+        Assert.Contains("CustomerId", problem!.Errors.Keys);
+    }
+
+    [Fact]
     public async Task Created_calculation_can_be_fetched_with_identical_boxes()
     {
         var created = await (await _client.PostAsJsonAsync("/api/cubing", Valid()))

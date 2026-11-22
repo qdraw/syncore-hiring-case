@@ -9,9 +9,12 @@ namespace Cubing.Core.Packing.Strategies;
 /// </summary>
 public sealed class CubePackingStrategy : IPackingStrategy
 {
+    public string? ValidateArticle(Dimensions article) =>
+        article.IsCubic ? null : "Article dimensions must be cubic (length = width = height).";
+
     public long GetMaxArticlesPerBox(Dimensions article, Dimensions box)
     {
-        if (!article.IsPositive || !box.IsPositive)
+        if (!article.IsPositive || !box.IsPositive || !article.IsCubic)
         {
             return 0;
         }
@@ -26,16 +29,7 @@ public sealed class CubePackingStrategy : IPackingStrategy
     }
 
     // Each factor is below 2^31, so the product of three can exceed long. Clamp instead of wrapping.
-    private static long SaturatingMultiply(long a, long b)
-    {
-        try
-        {
-            // checked(a * b) evaluates a * b with integer overflow checking enabled.
-            return checked(a * b);
-        }
-        catch (OverflowException)
-        {
-            return long.MaxValue;
-        }
-    }
+    // Both operands are non-negative here.
+    private static long SaturatingMultiply(long a, long b) =>
+        a == 0 || b <= long.MaxValue / a ? a * b : long.MaxValue;
 }

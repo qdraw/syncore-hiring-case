@@ -46,6 +46,7 @@ Calculates the boxes, stores the calculation, and returns **201 Created** with a
 
 ```json
 {
+  "customerId": "SuperNiceCubes",
   "quantity": 28,
   "articleName": "Article1",
   "articleDimensions": { "length": 10, "width": 10, "height": 10 },
@@ -59,6 +60,7 @@ Response:
 ```json
 {
   "calculationId": "e8d7260e-759d-40b4-a224-1102f3412a83",
+  "customerId": "SuperNiceCubes",
   "articleName": "Article1",
   "boxTypeName": "Box",
   "totalQuantity": 28,
@@ -70,13 +72,19 @@ Response:
 }
 ```
 
+`customerId` selects the customer's packing rules and LPN format. It is optional and defaults to
+`Cubing:DefaultCustomerId` (`SuperNiceCubes`), so the example payload from the brief works unchanged. Ids are
+case-insensitive.
+
 Invalid requests return **400** with a standard validation problem (`errors` keyed by field). Nothing is
 stored and no LPNs are generated. A request is rejected when:
 
 - quantity is not greater than zero,
 - the article or box name is missing,
 - any dimension is not greater than zero,
-- the article is not cubic (length, width and height must be equal),
+- the customer id is unknown,
+- the article is rejected by the customer's packing strategy (for Super Nice Cubes: not cubic, so length, width
+  and height must be equal),
 - the article does not fit inside the box,
 - the request needs more than 10,000 boxes.
 
@@ -130,9 +138,15 @@ used and tested without a web host or database.
 - `ILpnGenerator` produces LPNs as strings, so a future customer can use prefixed or sequential formats.
   `GuidLpnGenerator` uses `Guid.NewGuid()`.
 
-**No factory yet.** There is a single customer, so the strategies are registered directly in
-`AddCubing()` (`Api/Extensions`). When a second customer appears, a resolver can be added in front of
-`ICubingService` without changing the service or the strategies.
+**Customer profiles.** A `CustomerProfile` bundles one `IPackingStrategy` and one `ILpnGenerator`.
+`ICustomerProfileResolver` (implemented by `CustomerProfileRegistry`, a case-insensitive dictionary in `Core`)
+maps the request's `customerId` to its profile, and `CubingService` uses that profile for the whole request. An
+unknown customer is a validation error. Profiles are registered in `AddCubing()` (`Api/Extensions`), which
+accepts a callback to add more. The registry has no DI dependency, so it is trivial to test.
+
+**Customer rules live in the strategy.** `CubingService` only checks things every customer needs (quantity,
+names, positive dimensions). Whether an article is acceptable at all is `IPackingStrategy.ValidateArticle`;
+the "article must be cubic" rule belongs to `CubePackingStrategy`, not the shared service.
 
 **`CubingService` orchestrates.** It validates, asks the strategy for the capacity, computes the box count,
 generates one LPN per box and distributes the articles. Dependencies arrive through the constructor, so the
@@ -147,7 +161,7 @@ retries a duplicate up to 10 times per box before failing with `InvalidOperation
 also has a unique index on the LPN column.
 
 **Overflow safety.** Per-axis counts are `long`, and their product saturates at `long.MaxValue` instead of
-wrapping. The box count uses ceiling division on `long` values, so no intermediate result overflows.
+wrapping (a `b <= long.MaxValue / a` check, no exceptions). The box count uses ceiling division on `long` values, so no intermediate result overflows.
 
 **Box limit.** A request needing more than 10,000 boxes (`MaxBoxes` in `CubingService`) is rejected with a
 validation error. Without it, a request like 2 billion articles with a capacity of 1 would try to allocate
@@ -180,6 +194,6 @@ There is no separate unit-of-work abstraction because each request writes one ag
 ## Extending for a new customer
 
 1. Implement `IPackingStrategy` (and `ILpnGenerator` if the identifier format differs).
-2. Register the implementations in `AddCubing()`, or add a resolver that picks them per customer in front of
-   `ICubingService`.
+2. Register the customer: `services.AddCubing(r => r.Add("NewCustomer", new MyStrategy(), new MyLpnGenerator()))`.
+   The customer then sends `"customerId": "NewCustomer"`.
 3. Add unit tests next to the existing ones in `tests/Cubing.Core.Tests/Packing/`.

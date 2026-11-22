@@ -9,11 +9,25 @@ namespace Cubing.Core.Tests.Packing.Services;
 
 public class CubingServiceTests
 {
-    private static CubingRequest Request(int quantity, int article, Dimensions box) =>
-        new(quantity, "Article1", new Dimensions(article, article, article), "Box", box);
+    private const string Customer = "SuperNiceCubes";
+
+    private static CubingRequest Request(int quantity, int article, Dimensions box, string customer = Customer) =>
+        new(customer, quantity, "Article1", new Dimensions(article, article, article), "Box", box);
+
+    /// <summary>A strategy substitute that accepts every article (NSubstitute would return "" for the error message).</summary>
+    private static IPackingStrategy AcceptingStrategy(long capacity)
+    {
+        var strategy = Substitute.For<IPackingStrategy>();
+        strategy.ValidateArticle(Arg.Any<Dimensions>()).Returns((string?)null);
+        strategy.GetMaxArticlesPerBox(Arg.Any<Dimensions>(), Arg.Any<Dimensions>()).Returns(capacity);
+        return strategy;
+    }
+
+    private static CubingService ServiceFor(IPackingStrategy strategy, ILpnGenerator lpn) =>
+        new(new CustomerProfileRegistry().Add(Customer, strategy, lpn));
 
     private static CubingService RealService(ILpnGenerator? lpn = null) =>
-        new(new CubePackingStrategy(), lpn ?? new GuidLpnGenerator());
+        ServiceFor(new CubePackingStrategy(), lpn ?? new GuidLpnGenerator());
 
     [Theory]
     [InlineData(20, 10, 20, 20, 20, new[] { 8, 8, 4 })]
@@ -80,11 +94,10 @@ public class CubingServiceTests
     [Fact]
     public void Uses_the_configured_packing_strategy()
     {
-        var strategy = Substitute.For<IPackingStrategy>();
-        strategy.GetMaxArticlesPerBox(Arg.Any<Dimensions>(), Arg.Any<Dimensions>()).Returns(5L);
+        var strategy = AcceptingStrategy(5);
         var lpn = Substitute.For<ILpnGenerator>();
         lpn.Generate().Returns("1", "2", "3");
-        var service = new CubingService(strategy, lpn);
+        var service = ServiceFor(strategy, lpn);
 
         var result = service.Cube(Request(12, 10, new Dimensions(1, 1, 1)));
 
@@ -137,7 +150,7 @@ public class CubingServiceTests
     [Fact]
     public void Rejects_non_positive_article_dimensions()
     {
-        var request = new CubingRequest(10, "A", new Dimensions(0, 0, 0), "Box", new Dimensions(20, 20, 20));
+        var request = new CubingRequest(Customer, 10, "A", new Dimensions(0, 0, 0), "Box", new Dimensions(20, 20, 20));
 
         var ex = Assert.Throws<CubingValidationException>(() => RealService().Cube(request));
 
@@ -147,7 +160,7 @@ public class CubingServiceTests
     [Fact]
     public void Rejects_non_cubic_article()
     {
-        var request = new CubingRequest(10, "A", new Dimensions(10, 10, 11), "Box", new Dimensions(40, 40, 40));
+        var request = new CubingRequest(Customer, 10, "A", new Dimensions(10, 10, 11), "Box", new Dimensions(40, 40, 40));
 
         var ex = Assert.Throws<CubingValidationException>(() => RealService().Cube(request));
 
@@ -159,7 +172,7 @@ public class CubingServiceTests
     [InlineData("A", " ", nameof(CubingRequest.BoxTypeName))]
     public void Rejects_missing_names(string article, string box, string expectedKey)
     {
-        var request = new CubingRequest(10, article, new Dimensions(10, 10, 10), box, new Dimensions(20, 20, 20));
+        var request = new CubingRequest(Customer, 10, article, new Dimensions(10, 10, 10), box, new Dimensions(20, 20, 20));
 
         var ex = Assert.Throws<CubingValidationException>(() => RealService().Cube(request));
 
@@ -183,5 +196,76 @@ public class CubingServiceTests
 
         Assert.Equal(1, result.TotalBoxes);
         Assert.Equal(int.MaxValue, result.Boxes[0].NumberOfItems);
+    }
+
+    [Theory]
+    [InlineData("Unknown")]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void Rejects_unknown_customer_without_generating_lpns(string customer)
+    {
+        var lpn = Substitute.For<ILpnGenerator>();
+
+        var ex = Assert.Throws<CubingValidationException>(
+            () => RealService(lpn).Cube(Request(10, 10, new Dimensions(20, 20, 20), customer)));
+
+        Assert.Contains(nameof(CubingRequest.CustomerId), ex.Errors.Keys);
+        lpn.DidNotReceive().Generate();
+    }
+
+    [Fact]
+    public void Customer_id_is_matched_case_insensitively()
+    {
+        var result = RealService().Cube(Request(10, 10, new Dimensions(20, 20, 20), "supernicecubes"));
+
+        Assert.Equal(2, result.TotalBoxes);
+    }
+
+    [Fact]
+    public void Each_customer_uses_its_own_strategy_and_lpn_generator()
+    {
+        var strategyA = AcceptingStrategy(2);
+        var lpnA = Substitute.For<ILpnGenerator>();
+        lpnA.Generate().Returns("A1", "A2");
+        var strategyB = AcceptingStrategy(10);
+        var lpnB = Substitute.For<ILpnGenerator>();
+        lpnB.Generate().Returns("B1");
+        var service = new CubingService(new CustomerProfileRegistry()
+            .Add("A", strategyA, lpnA)
+            .Add("B", strategyB, lpnB));
+        var box = new Dimensions(20, 20, 20);
+
+        var a = service.Cube(Request(4, 10, box, "A"));
+        var b = service.Cube(Request(4, 10, box, "B"));
+
+        Assert.Equal(["A1", "A2"], a.Boxes.Select(x => x.LicensePlateNumber));
+        Assert.Equal(["B1"], b.Boxes.Select(x => x.LicensePlateNumber));
+        Assert.Equal("A", a.CustomerId);
+        lpnA.Received(2).Generate();
+        lpnB.Received(1).Generate();
+    }
+
+    [Fact]
+    public void Article_rules_come_from_the_customers_strategy()
+    {
+        var strategy = AcceptingStrategy(3);
+        var request = new CubingRequest(Customer, 3, "A", new Dimensions(10, 10, 11), "Box", new Dimensions(40, 40, 40));
+
+        var result = ServiceFor(strategy, new GuidLpnGenerator()).Cube(request);
+
+        Assert.Equal(1, result.TotalBoxes);
+    }
+
+    [Fact]
+    public void Strategy_article_error_is_reported_as_a_validation_error()
+    {
+        var strategy = Substitute.For<IPackingStrategy>();
+        strategy.ValidateArticle(Arg.Any<Dimensions>()).Returns("nope");
+
+        var ex = Assert.Throws<CubingValidationException>(
+            () => ServiceFor(strategy, new GuidLpnGenerator()).Cube(Request(1, 10, new Dimensions(20, 20, 20))));
+
+        Assert.Equal(["nope"], ex.Errors[nameof(CubingRequest.ArticleDimensions)]);
+        strategy.DidNotReceive().GetMaxArticlesPerBox(Arg.Any<Dimensions>(), Arg.Any<Dimensions>());
     }
 }

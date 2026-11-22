@@ -9,6 +9,8 @@ public class DimensionsRequest
 
 public class CubingApiRequest
 {
+    /// <summary>Selects the customer's packing rules and LPN format. Optional; defaults to the configured customer.</summary>
+    public string? CustomerId { get; set; }
     public int Quantity { get; set; }
     public string? ArticleName { get; set; }
     public DimensionsRequest? ArticleDimensions { get; set; }
@@ -25,6 +27,7 @@ public class BoxResponse
 public class CubingApiResponse
 {
     public Guid CalculationId { get; set; }
+    public string CustomerId { get; set; } = string.Empty;
     public string ArticleName { get; set; } = string.Empty;
     public string BoxTypeName { get; set; } = string.Empty;
     public int TotalQuantity { get; set; }

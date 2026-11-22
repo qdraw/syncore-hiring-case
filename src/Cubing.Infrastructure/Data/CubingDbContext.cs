@@ -11,6 +11,7 @@ public class CubingDbContext(DbContextOptions<CubingDbContext> options) : DbCont
     {
         modelBuilder.Entity<CubingCalculation>(e =>
         {
+            e.Property(c => c.CustomerId).HasMaxLength(100).IsRequired();
             e.Property(c => c.ArticleName).HasMaxLength(200).IsRequired();
             e.Property(c => c.BoxTypeName).HasMaxLength(200).IsRequired();
             e.HasMany(c => c.Boxes).WithOne().HasForeignKey(b => b.CubingCalculationId).OnDelete(DeleteBehavior.Cascade);
