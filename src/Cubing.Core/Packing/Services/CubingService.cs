@@ -73,7 +73,7 @@ public sealed class CubingService(ICustomerProfileResolver profiles) : ICubingSe
     {
         for (var attempt = 0; attempt < MaxLpnAttemptsPerBox; attempt++)
         {
-            var lpn = generator.Generate();
+            var lpn = generator.Generate(attempt);
             if (!string.IsNullOrWhiteSpace(lpn) && usedLpns.Add(lpn))
             {
                 return lpn;

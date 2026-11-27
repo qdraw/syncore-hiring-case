@@ -24,7 +24,8 @@ public static class CubingServiceCollectionExtensions
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<CubingOptions>>().Value);
 
         var registry = new CustomerProfileRegistry()
-            .Add(CubingOptions.SuperNiceCubes, new CubePackingStrategy(), new GuidLpnGenerator());
+            .Add(CubingOptions.SuperNiceCubes, new CubePackingStrategy(), new GuidLpnGenerator())
+            .Add(CubingOptions.SuperSafelyPackedCubes, new CubePackingStrategy(), new DateTimeLpnGenerator());
         configure?.Invoke(registry);
 
         services.AddSingleton<ICustomerProfileResolver>(registry);

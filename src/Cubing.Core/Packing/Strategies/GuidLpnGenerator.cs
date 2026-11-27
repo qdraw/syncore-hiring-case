@@ -4,5 +4,5 @@ namespace Cubing.Core.Packing.Strategies;
 
 public sealed class GuidLpnGenerator : ILpnGenerator
 {
-    public string Generate() => Guid.NewGuid().ToString();
+    public string Generate(int? attempt = null) => Guid.NewGuid().ToString();
 }
